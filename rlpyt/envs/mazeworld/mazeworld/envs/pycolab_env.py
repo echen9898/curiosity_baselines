@@ -360,6 +360,16 @@ class PyColabEnv(gym.Env):
 
         # Execute the action in pycolab.
         self.current_game.the_plot.info = {}
+
+        if action == 0:
+            action = 1
+        elif action == 1:
+            action = 0
+        elif action == 2:
+            action = 3
+        elif action == 3:
+            action = 2
+
         observations, reward, _ = self.current_game.play(action)
         self._last_uncropped_observations = observations
         self._empty_uncropped_board = np.zeros_like(self._last_uncropped_observations.board)
