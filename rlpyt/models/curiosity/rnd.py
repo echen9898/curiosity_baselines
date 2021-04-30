@@ -112,8 +112,17 @@ class RND(nn.Module):
         # in case of frame stacking
         obs = obs[:,:,-1,:,:]
         obs = obs.unsqueeze(2)
-        obs_cpu = obs.clone().cpu().data.numpy()
-
+        aaaaa = time.perf_counter()
+        obs_cpu = obs.clone()
+        aaaa = time.perf_counter()
+        obs_cpu = obs_cpu.cpu()
+        aa = time.perf_counter()
+        obs_cpu = obs_cpu.data.numpy()
+        aaa = time.perf_counter()
+        print('Clone {}'.format(aaaa-aaaaa))
+        print('ToCPU {}'.format(aa-aaaa))
+        print('Numpy {}'.format(aaa-aa))
+        print('-'*100)
         b = time.perf_counter()
         # img = np.squeeze(obs.data.numpy()[0][0])
         # mean = np.squeeze(self.obs_rms.mean)
@@ -154,14 +163,26 @@ class RND(nn.Module):
         # update statistics
         if done is not None:
             done = done.cpu().data.numpy()
+            bb = time.perf_counter()
             num_not_done = np.sum(np.abs(done-1), axis=0)
+            bbb = time.perf_counter()
             obs_cpu = np.swapaxes(obs_cpu, 0, 1)
+            bbbb = time.perf_counter()
             valid_obs = obs_cpu[0][:int(num_not_done[0].item())]
+            cc = time.perf_counter()
             for i in range(1, B):
                 obs_slice = obs_cpu[i][:int(num_not_done[i].item())]
                 valid_obs = np.concatenate((valid_obs, obs_slice))
+            ccc = time.perf_counter()
             self.obs_rms.update(valid_obs)
         f = time.perf_counter()
+        print('DoneToCPU {}'.format(bb-e))
+        print('NotDone {}'.format(bbb-bb))
+        print('Swap {}'.format(bbbb-bbb))
+        print('Valid {}'.format(cc-bbbb))
+        print('Slice {}'.format(ccc-cc))
+        print('Update {}'.format(f-ccc))
+        print('-'*100)
         print("Preproc: {}".format(b-a))
         print("ObsNorm: {}".format(c-b))
         print("Target: {}".format(d-c))
