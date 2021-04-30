@@ -1,4 +1,4 @@
-
+from time import perf_counter as pc
 import torch
 from torch import nn
 
@@ -66,13 +66,15 @@ class ICM(nn.Module):
 
     def forward(self, obs1, obs2, action):
 
+        f = pc()
         if self.obs_stats is not None:
             img1 = (obs1 - self.obs_mean) / self.obs_std
             img2 = (obs2 - self.obs_mean) / self.obs_std
 
         img1 = obs1.type(torch.float)
         img2 = obs2.type(torch.float) # Expect torch.uint8 inputs
-
+        g = pc()
+        print('ObsNorm: {}'.format(g-f))
         # Infer (presence of) leading dimensions: [T,B], [B], or [].
         # lead_dim is just number of leading dimensions: e.g. [T, B] = 2 or [] = 0.
         lead_dim, T, B, img_shape = infer_leading_dims(obs1, 3) 
@@ -84,19 +86,30 @@ class ICM(nn.Module):
             phi2 = self.encoder(img2.view(T * B, *img_shape))
             phi1 = phi1.view(T, B, -1)
             phi2 = phi2.view(T, B, -1)
-
+        h = pc()
+        print('Encode: {}'.format(h-g))
         predicted_action = self.inverse_model(torch.cat([phi1, phi2], 2))
+        i = pc()
+        print('Inverse: {}'.format(i-h))
         predicted_phi2 = self.forward_model(phi1.detach(), action.view(T, B, -1).detach())
-
+        j = pc()
+        print('Forward: {}'.format(j-i))
+        print('-'*100)
+        print("FORWARD TTL: {}".format(j-f))
         return phi1, phi2, predicted_phi2, predicted_action
 
     def compute_bonus(self, observations, next_observations, actions):
+        a = pc()
         phi1, phi2, predicted_phi2, predicted_action = self.forward(observations, next_observations, actions)
         reward = nn.functional.mse_loss(predicted_phi2, phi2, reduction='none').sum(-1)/self.feature_size
+        b = pc()
+        print("BONUS {}".format(b-a))
+        print('-'*100)
         return self.prediction_beta * reward
 
     def compute_loss(self, observations, next_observations, actions, valid):
         # dimension add for when you have only one environment
+        d = pc()
         if actions.dim() == 2: actions = actions.unsqueeze(1)
         phi1, phi2, predicted_phi2, predicted_action = self.forward(observations, next_observations, actions)
         actions = torch.max(actions.view(-1, *actions.shape[2:]), 1)[1] # convert action to (T * B, action_size)
@@ -104,6 +117,9 @@ class ICM(nn.Module):
         forward_loss = nn.functional.mse_loss(predicted_phi2, phi2.detach(), reduction='none').sum(-1)/self.feature_size
         inverse_loss = valid_mean(inverse_loss, valid.detach())
         forward_loss = valid_mean(forward_loss, valid.detach())
+        e = pc()
+        print("LOSS {}".format(e-d))
+        print('-'*100)
         return self.inverse_loss_wt*inverse_loss, self.forward_loss_wt*forward_loss
 
 
