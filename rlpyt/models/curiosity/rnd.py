@@ -1,6 +1,6 @@
 import os
 from PIL import Image
-import time
+from time import perf_counter as pc
 import numpy as np
 import torch
 from torch import nn
@@ -108,22 +108,22 @@ class RND(nn.Module):
 
 
     def forward(self, obs, done=None):
-        a = time.perf_counter()
+        a = pc()
         # in case of frame stacking
         obs = obs[:,:,-1,:,:]
         obs = obs.unsqueeze(2)
-        aaaaa = time.perf_counter()
+        aaaaa = pc()
         obs_cpu = obs.clone()
-        aaaa = time.perf_counter()
+        aaaa = pc()
         obs_cpu = obs_cpu.cpu()
-        aa = time.perf_counter()
+        aa = pc()
         obs_cpu = obs_cpu.data.numpy()
-        aaa = time.perf_counter()
+        aaa = pc()
         print('Clone {}'.format(aaaa-aaaaa))
         print('ToCPU {}'.format(aa-aaaa))
         print('Numpy {}'.format(aaa-aa))
         print('-'*100)
-        b = time.perf_counter()
+        b = pc()
         # img = np.squeeze(obs.data.numpy()[0][0])
         # mean = np.squeeze(self.obs_rms.mean)
         # var = np.squeeze(self.obs_rms.var)
@@ -151,38 +151,39 @@ class RND(nn.Module):
         norm_obs = (obs.clone().float() - obs_mean) / (torch.sqrt(obs_var)+1e-10)
         norm_obs = torch.clamp(norm_obs, min=-5, max=5).float()
 
-        c = time.perf_counter()
+        c = pc()
         # prediction target
         phi = self.target_model(norm_obs.clone().detach().view(T * B, *img_shape)).view(T, B, -1)
         
-        d = time.perf_counter()
+        d = pc()
         # make prediction
         predicted_phi = self.forward_model(norm_obs.detach().view(T * B, *img_shape)).view(T, B, -1)
-        e = time.perf_counter()
+        e = pc()
 
         # update statistics
         if done is not None:
             done = done.cpu().data.numpy()
-            bb = time.perf_counter()
+            bb = pc()
             num_not_done = np.sum(np.abs(done-1), axis=0)
-            bbb = time.perf_counter()
+            bbb = pc()
             obs_cpu = np.swapaxes(obs_cpu, 0, 1)
-            bbbb = time.perf_counter()
+            bbbb = pc()
             valid_obs = obs_cpu[0][:int(num_not_done[0].item())]
-            cc = time.perf_counter()
+            cc = pc()
             for i in range(1, B):
                 obs_slice = obs_cpu[i][:int(num_not_done[i].item())]
                 valid_obs = np.concatenate((valid_obs, obs_slice))
-            ccc = time.perf_counter()
+            ccc = pc()
             self.obs_rms.update(valid_obs)
-        f = time.perf_counter()
-        print('DoneToCPU {}'.format(bb-e))
-        print('NotDone {}'.format(bbb-bb))
-        print('Swap {}'.format(bbbb-bbb))
-        print('Valid {}'.format(cc-bbbb))
-        print('Slice {}'.format(ccc-cc))
-        print('Update {}'.format(f-ccc))
-        print('-'*100)
+            cccc = pc()
+            print('DoneToCPU {}'.format(bb-e))
+            print('NotDone {}'.format(bbb-bb))
+            print('Swap {}'.format(bbbb-bbb))
+            print('Valid {}'.format(cc-bbbb))
+            print('Slice {}'.format(ccc-cc))
+            print('Update {}'.format(cccc-ccc))
+            print('-'*100)
+        f = pc()
         print("Preproc: {}".format(b-a))
         print("ObsNorm: {}".format(c-b))
         print("Target: {}".format(d-c))
@@ -193,7 +194,7 @@ class RND(nn.Module):
         return phi, predicted_phi, T
 
     def compute_bonus(self, next_observation, done):
-        x = time.perf_counter()
+        x = pc()
         phi, predicted_phi, T = self.forward(next_observation, done=done)
         rewards = nn.functional.mse_loss(predicted_phi, phi.detach(), reduction='none').sum(-1)/self.feature_size
 
@@ -214,20 +215,20 @@ class RND(nn.Module):
 
         # apply done mask
         rewards *= not_done
-        z = time.perf_counter()
+        z = pc()
         print("BONUS TTL: {}".format(z-x))
         print('-'*100)
         return self.prediction_beta * rewards
 
     def compute_loss(self, next_observations, valid):
-        l = time.perf_counter()
+        l = pc()
         phi, predicted_phi, _ = self.forward(next_observations, done=None)
         forward_loss = nn.functional.mse_loss(predicted_phi, phi.detach(), reduction='none').sum(-1)/self.feature_size
         mask = torch.rand(forward_loss.shape)
         mask = 1.0 - (mask > self.drop_probability).float().to(self.device)
         net_mask = mask * valid
         forward_loss = torch.sum(forward_loss * net_mask.detach()) / torch.sum(net_mask.detach())
-        h = time.perf_counter()
+        h = pc()
         print("LOSS TTL: {}".format(h-l))
         print("-"*100)
         return forward_loss
