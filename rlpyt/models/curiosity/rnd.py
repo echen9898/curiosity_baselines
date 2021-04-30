@@ -33,6 +33,9 @@ class RND(nn.Module):
         self.device = torch.device('cuda:0' if device == 'gpu' else 'cpu')
 
         c, h, w = 1, image_shape[1], image_shape[2] # assuming grayscale inputs
+        self.c = c
+        self.h = h
+        self.w = w
         self.obs_rms = RunningMeanStd(shape=(1, c, h, w)) # (T, B, c, h, w)
         if obs_stats is not None:
             self.obs_rms.mean[0] = obs_stats[0]
@@ -164,23 +167,15 @@ class RND(nn.Module):
         if done is not None:
             done = done.cpu().data.numpy()
             bb = pc()
-            num_not_done = np.sum(np.abs(done-1), axis=0)
+            not_done = np.abs(done-1)      
             bbb = pc()
-            obs_cpu = np.swapaxes(obs_cpu, 0, 1)
-            bbbb = pc()
-            valid_obs = obs_cpu[0][:int(num_not_done[0].item())]
-            cc = pc()
-            for i in range(1, B):
-                obs_slice = obs_cpu[i][:int(num_not_done[i].item())]
-                valid_obs = np.concatenate((valid_obs, obs_slice))
+            valid_obs = np.reshape(obs_cpu[np.where(not_done==1)[:2]], (-1, self.c, self.h, self.w))
             ccc = pc()
             self.obs_rms.update(valid_obs)
             cccc = pc()
             print('DoneToCPU {}'.format(bb-e))
             print('NotDone {}'.format(bbb-bb))
-            print('Swap {}'.format(bbbb-bbb))
-            print('Valid {}'.format(cc-bbbb))
-            print('Slice {}'.format(ccc-cc))
+            print('Slice {}'.format(ccc-bbb))
             print('Update {}'.format(cccc-ccc))
             print('-'*100)
         f = pc()
