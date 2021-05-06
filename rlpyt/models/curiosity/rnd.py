@@ -129,6 +129,18 @@ class RND(nn.Module):
         #print("Final", np.min(((img-mean)/std).ravel()), np.mean(((img-mean)/std).ravel()), np.max(((img-mean)/std).ravel()))
         # print("#"*100 + "\n")
 
+        # for o in obs_cpu:
+        #     o = np.squeeze(o)
+        #     vals = set(o.ravel())
+        #     mode = 'none'
+        #     for i in vals:
+        #         if 34. < i < 36.:
+        #             mode = 'blue'
+            
+        #     if mode != 'none':
+        #         num = len(os.listdir('data/{}'.format(mode)))+1
+        #         cv2.imwrite('data/{}/{}.png'.format(mode, num), o)
+
         # Infer (presence of) leading dimensions: [T,B], [B], or [].
         # lead_dim is just number of leading dimensions: e.g. [T, B] = 2 or [] = 0.
         lead_dim, T, B, img_shape = infer_leading_dims(obs, 3)

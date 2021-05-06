@@ -14,6 +14,7 @@ import gym
 from gym import spaces
 from gym import logger
 from gym.utils import seeding
+import cv2
 
 import numpy as np
 from scipy.stats import entropy
@@ -306,9 +307,14 @@ class PyColabEnv(gym.Env):
             board_mask = np.logical_or(board_layer_mask, board_mask)
         return board
 
+    def grayscale(self, obs):
+        img = obs[:, :, 0] * 0.299 + obs[:, :, 1] * 0.587 + obs[:, :, 2] * 0.114
+        return np.expand_dims(img, axis=2) # (w, h, c)
+
     def _update_for_game_step(self, observations, reward):
         """Update internal state with data from an environment interaction."""
         # disentangled one hot state
+
         if self._extrinsic_reward > 0.0 and self._extrinsic_coord_based: # extrinsic reward is based on a coordinate
             if self.current_game.things[self._extrinsic_reward_spec[0]].position == self._extrinsic_reward_spec[1]:
                 reward = self._extrinsic_reward
@@ -328,6 +334,17 @@ class PyColabEnv(gym.Env):
         elif self.obs_type == 'rgb':
             rgb_img = self._paint_board(observations.layers, cropped=True).astype(float)
             self._state = self.resize(rgb_img)
+
+            category = 25
+            if 1 in observations.layers['b']:
+                category = np.argmax(observations.layers['b'])
+                num = len(os.listdir('blue_data/{}'.format(category)))+1
+                cv2.imwrite('blue_data/{}/{}.png'.format(category, num), self.grayscale(self._state))
+            # else:
+            #     if 255. in set(self.grayscale(rgb_img).ravel()):
+            #         num = len(os.listdir('blue_data/{}'.format(category)))+1
+            #         cv2.imwrite('blue_data/{}/{}.png'.format(category, num), self.grayscale(self._state))
+
             for char in self.state_layer_chars:
                 if char != ' ':
                     mask = observations.layers[char].astype(float)
