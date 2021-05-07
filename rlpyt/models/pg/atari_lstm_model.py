@@ -43,41 +43,15 @@ class AtariLstmModel(torch.nn.Module):
             self.obs_mean, self.obs_std = self.obs_stats
 
         if curiosity_kwargs['curiosity_alg'] != 'none':
+            curiosity_init_kwargs = {k: curiosity_kwargs[k] for k in curiosity_kwargs.keys() - {'curiosity_alg'}}
             if curiosity_kwargs['curiosity_alg'] == 'icm':
-                self.curiosity_model = ICM(image_shape=image_shape,
-                                           action_size=output_size,
-                                           feature_encoding=curiosity_kwargs['feature_encoding'],
-                                           batch_norm=curiosity_kwargs['batch_norm'],
-                                           prediction_beta=curiosity_kwargs['prediction_beta'],
-                                           obs_stats=self.obs_stats,
-                                           forward_loss_wt=curiosity_kwargs['forward_loss_wt'],
-                                           forward_model=curiosity_kwargs['forward_model'])
+                self.curiosity_model = ICM(image_shape=image_shape, action_size=output_size, **curiosity_init_kwargs)
             elif curiosity_kwargs['curiosity_alg'] == 'disagreement':
-                self.curiosity_model = Disagreement(image_shape=image_shape,
-                                                    action_size=output_size,
-                                                    feature_encoding=curiosity_kwargs['feature_encoding'],
-                                                    batch_norm=curiosity_kwargs['batch_norm'],
-                                                    prediction_beta=curiosity_kwargs['prediction_beta'],
-                                                    obs_stats=self.obs_stats,
-                                                    device=curiosity_kwargs['device'],
-                                                    forward_loss_wt=curiosity_kwargs['forward_loss_wt'],
-                                                    forward_model=curiosity_kwargs['forward_model'])
+                self.curiosity_model = Disagreement(image_shape=image_shape, action_size=output_size, **curiosity_init_kwargs)
             elif curiosity_kwargs['curiosity_alg'] == 'ndigo':
-                self.curiosity_model = NDIGO(image_shape=image_shape,
-                                             action_size=output_size,
-                                             obs_stats=self.obs_stats,
-                                             horizon=curiosity_kwargs['pred_horizon'],
-                                             feature_encoding=curiosity_kwargs['feature_encoding'],
-                                             batch_norm=curiosity_kwargs['batch_norm'],
-                                             device=curiosity_kwargs['device'],
-                                             )
+                self.curiosity_model = NDIGO(image_shape=image_shape, action_size=output_size, **curiosity_init_kwargs)
             elif curiosity_kwargs['curiosity_alg'] == 'rnd':
-                self.curiosity_model = RND(image_shape=image_shape,
-                                           obs_stats=self.obs_stats,
-                                           prediction_beta=curiosity_kwargs['prediction_beta'],
-                                           drop_probability=curiosity_kwargs['drop_probability'],
-                                           gamma=curiosity_kwargs['gamma'],
-                                           device=curiosity_kwargs['device'])
+                self.curiosity_model = RND(image_shape=image_shape, obs_stats=self.obs_stats, **curiosity_init_kwargs)
             
             if curiosity_kwargs['feature_encoding'] == 'idf':
                 self.conv = UniverseHead(image_shape=image_shape,

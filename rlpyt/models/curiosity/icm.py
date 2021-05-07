@@ -23,11 +23,13 @@ class ICM(nn.Module):
             prediction_beta=1.0,
             obs_stats=None,
             forward_loss_wt=0.2,
-            forward_model='res'
+            forward_model='res',
+            feature_space='inverse',
             ):
         super(ICM, self).__init__()
         self.prediction_beta = prediction_beta
         self.feature_encoding = feature_encoding
+        self.feature_space = feature_space
         self.obs_stats = obs_stats
         if self.obs_stats is not None:
             self.obs_mean, self.obs_std = self.obs_stats
@@ -50,11 +52,12 @@ class ICM(nn.Module):
                 self.feature_size = 256
                 self.encoder = MazeHead(image_shape=image_shape, output_size=self.feature_size, batch_norm=batch_norm)
 
-        self.inverse_model = nn.Sequential(
-            nn.Linear(self.feature_size * 2, self.feature_size),
-            nn.ReLU(),
-            nn.Linear(self.feature_size, action_size)
-            )
+        if self.feature_space == 'inverse':
+            self.inverse_model = nn.Sequential(
+                nn.Linear(self.feature_size * 2, self.feature_size),
+                nn.ReLU(),
+                nn.Linear(self.feature_size, action_size)
+                )
 
         if forward_model == 'res':
             fmodel_class = ResForward
@@ -85,13 +88,15 @@ class ICM(nn.Module):
             phi1 = phi1.view(T, B, -1)
             phi2 = phi2.view(T, B, -1)
 
-        predicted_action = self.inverse_model(torch.cat([phi1, phi2], 2))
+        predicted_action = None
+        if self.feature_space == 'inverse':
+            predicted_action = self.inverse_model(torch.cat([phi1, phi2], 2))
         predicted_phi2 = self.forward_model(phi1.detach(), action.view(T, B, -1).detach())
 
         return phi1, phi2, predicted_phi2, predicted_action
 
     def compute_bonus(self, observations, next_observations, actions):
-        phi1, phi2, predicted_phi2, predicted_action = self.forward(observations, next_observations, actions)
+        phi1, phi2, predicted_phi2, _ = self.forward(observations, next_observations, actions)
         reward = nn.functional.mse_loss(predicted_phi2, phi2, reduction='none').sum(-1)/self.feature_size
         return self.prediction_beta * reward
 
@@ -100,9 +105,11 @@ class ICM(nn.Module):
         if actions.dim() == 2: actions = actions.unsqueeze(1)
         phi1, phi2, predicted_phi2, predicted_action = self.forward(observations, next_observations, actions)
         actions = torch.max(actions.view(-1, *actions.shape[2:]), 1)[1] # convert action to (T * B, action_size)
-        inverse_loss = nn.functional.cross_entropy(predicted_action.view(-1, *predicted_action.shape[2:]), actions.detach(), reduction='none').view(phi1.shape[0], phi1.shape[1])
+        inverse_loss = torch.tensor(0.0)
+        if self.feature_space == 'inverse':
+            inverse_loss = nn.functional.cross_entropy(predicted_action.view(-1, *predicted_action.shape[2:]), actions.detach(), reduction='none').view(phi1.shape[0], phi1.shape[1])
+            inverse_loss = valid_mean(inverse_loss, valid.detach())
         forward_loss = nn.functional.mse_loss(predicted_phi2, phi2.detach(), reduction='none').sum(-1)/self.feature_size
-        inverse_loss = valid_mean(inverse_loss, valid.detach())
         forward_loss = valid_mean(forward_loss, valid.detach())
         return self.inverse_loss_wt*inverse_loss, self.forward_loss_wt*forward_loss
 

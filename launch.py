@@ -161,6 +161,7 @@ def start_experiment(args):
         model_args['curiosity_kwargs']['prediction_beta'] = args.prediction_beta
         model_args['curiosity_kwargs']['forward_loss_wt'] = args.forward_loss_wt
         model_args['curiosity_kwargs']['forward_model'] = args.forward_model
+        model_args['curiosity_kwargs']['feature_space'] = args.feature_space
     elif args.curiosity_alg == 'disagreement':
         model_args['curiosity_kwargs']['feature_encoding'] = args.feature_encoding
         model_args['curiosity_kwargs']['ensemble_size'] = args.ensemble_size

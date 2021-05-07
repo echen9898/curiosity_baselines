@@ -83,6 +83,7 @@ def get_args(args_in=sys.argv[1:]):
         parser.add_argument('-batch_norm', action='store_true', help='Whether or not to use batch norm in the feature encoder.')
         parser.add_argument('-prediction_beta', default=1.0, type=float, help='Scalar multiplier applied to the prediction error to generate the intrinsic reward. Environment dependent.')
         parser.add_argument('-forward_model', default='res', type=str, choices=['res', 'og'], help='Which forward model architecture to use.')
+        parser.add_argument('-feature_space', default='inverse', type=str, choices=['inverse', 'random'], help='Use inverse features or random fixed features.')
     elif curiosity_alg == 'disagreement':
         parser.add_argument('-feature_encoding', default='idf_burda', type=str, choices=['none', 'idf', 'idf_burda', 'idf_maze'], help='Which feature encoding method to use with ICM.')
         parser.add_argument('-forward_loss_wt', default=0.2, type=float, help='Forward loss coefficient. Inverse weight is (1 - this).')

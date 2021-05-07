@@ -22,7 +22,8 @@ class RND(nn.Module):
             prediction_beta=1.0,
             drop_probability=1.0,
             gamma=0.99,
-            device='cpu'
+            device='cpu',
+            feature_encoding='none',
             ):
         super(RND, self).__init__()
 
