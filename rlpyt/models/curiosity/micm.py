@@ -67,10 +67,10 @@ class MICM(nn.Module):
 
         self.ensemble_mode = ensemble_mode
 
-        self.forward_model_1 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(device)
-        self.forward_model_2 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(device)
-        self.forward_model_3 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(device)
-        self.forward_model_4 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(device)
+        self.forward_model_1 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(self.device)
+        self.forward_model_2 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(self.device)
+        self.forward_model_3 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(self.device)
+        self.forward_model_4 = fmodel_class(feature_size=self.feature_size, action_size=action_size).to(self.device)
 
     def forward(self, obs1, obs2, action):
 
